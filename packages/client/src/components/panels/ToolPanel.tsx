@@ -88,7 +88,7 @@ export default function ToolPanel() {
                 const disabled = !isNavGroup && !activeStructuralLayer;
                 return (
                   <button key={t.id} onClick={() => !disabled && setTool(t.id)}
-                    title={t.desc || t.label}
+                    title={disabled ? '⚠️ 좌측 레이어 탭에서 구조 레이어를 먼저 선택하세요' : (t.desc || t.label)}
                     style={{
                       padding: '4px 6px', fontSize: 10, minWidth: 42, textAlign: 'center',
                       background: active ? '#1f3354' : '#161b22',
