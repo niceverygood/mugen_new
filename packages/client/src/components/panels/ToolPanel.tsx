@@ -91,19 +91,21 @@ export default function ToolPanel() {
                 const active = tool === t.id;
                 const disabled = !isNavGroup && !activeStructuralLayer;
                 return (
-                  <button key={t.id} onClick={() => !disabled && setTool(t.id)}
-                    title={disabled ? '⚠️ 좌측 레이어 탭에서 구조 레이어를 먼저 선택하세요' : (t.desc || t.label)}
-                    style={{
-                      padding: '4px 6px', fontSize: 10, minWidth: 42, textAlign: 'center',
-                      background: active ? '#1f3354' : '#161b22',
-                      border: active ? '1px solid #2f81f7' : '1px solid #21262d',
-                      color: active ? '#58a6ff' : disabled ? '#30363d' : '#8b949e',
-                      borderRadius: 4, cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.5 : 1,
-                    }}>
-                    <div style={{ fontSize: 14, lineHeight: 1 }}>{t.icon}</div>
-                    <div style={{ marginTop: 1 }}>{t.label} <span style={{ color: '#484f58', fontSize: 9 }}>{t.key}</span></div>
-                  </button>
+                  <div key={t.id} style={{ position: 'relative' }} className="tool-btn-wrap">
+                    <button onClick={() => !disabled && setTool(t.id)}
+                      style={{
+                        padding: '4px 6px', fontSize: 10, minWidth: 42, textAlign: 'center',
+                        background: active ? '#1f3354' : '#161b22',
+                        border: active ? '1px solid #2f81f7' : '1px solid #21262d',
+                        color: active ? '#58a6ff' : disabled ? '#30363d' : '#8b949e',
+                        borderRadius: 4, cursor: disabled ? 'default' : 'pointer',
+                        opacity: disabled ? 0.5 : 1, width: '100%',
+                      }}>
+                      <div style={{ fontSize: 14, lineHeight: 1 }}>{t.icon}</div>
+                      <div style={{ marginTop: 1 }}>{t.label} <span style={{ color: '#484f58', fontSize: 9 }}>{t.key}</span></div>
+                    </button>
+                    {disabled && <div className="tool-tooltip">⚠️ 좌측 레이어 탭에서 구조 레이어를 먼저 선택하세요</div>}
+                  </div>
                 );
               })}
             </div>
