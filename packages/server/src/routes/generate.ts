@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { DXFData, Preset, GenSettings } from '@mugen/shared';
 import { autoGenerate } from '../services/auto-generator.js';
 
-export const generateRouter = Router();
+export const generateRouter: ReturnType<typeof Router> = Router();
 
 generateRouter.post('/generate', (req, res) => {
   const { dxfData, preset, settings } = req.body as {

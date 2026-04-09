@@ -286,24 +286,60 @@ export default function StructuralCanvas() {
           ctx.moveTo(tx(p0.x + wt), ty(p0.y));
           ctx.lineTo(tx(p0.x + wt), ty(endY));
         }
+      } else if (drawingPreview.type === 'circle' && pts.length > 0) {
+        const r = Math.hypot(cur.x - pts[0].x, cur.y - pts[0].y);
+        ctx.arc(tx(pts[0].x), ty(pts[0].y), r * scale, 0, Math.PI * 2);
+        ctx.font = '10px monospace'; ctx.fillStyle = previewColor;
+        ctx.fillText(`R=${Math.round(r)}`, tx(pts[0].x) + 8, ty(pts[0].y) - 8);
+      } else if (drawingPreview.type === 'arc') {
+        if (pts.length === 1) {
+          // Show radius line
+          const r = Math.hypot(cur.x - pts[0].x, cur.y - pts[0].y);
+          ctx.arc(tx(pts[0].x), ty(pts[0].y), r * scale, 0, Math.PI * 2);
+        } else if (pts.length === 2) {
+          const r = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+          const sa = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+          const ea = Math.atan2(cur.y - pts[0].y, cur.x - pts[0].x);
+          ctx.arc(tx(pts[0].x), ty(pts[0].y), r * scale, -sa, -ea, sa > ea);
+        }
       } else if (drawingPreview.type === 'polyline') {
         if (pts.length > 0) {
           ctx.moveTo(tx(pts[0].x), ty(pts[0].y));
           for (let i = 1; i < pts.length; i++) ctx.lineTo(tx(pts[i].x), ty(pts[i].y));
           ctx.lineTo(tx(cur.x), ty(cur.y));
         }
+      } else if ((drawingPreview.type === 'xcross' || drawingPreview.type === 'joists') && pts.length > 0) {
+        const x1s = tx(pts[0].x), y1s = ty(pts[0].y);
+        const x2s = tx(cur.x), y2s = ty(cur.y);
+        ctx.rect(Math.min(x1s, x2s), Math.min(y1s, y2s), Math.abs(x2s - x1s), Math.abs(y2s - y1s));
+        if (drawingPreview.type === 'xcross') {
+          ctx.moveTo(x1s, y1s); ctx.lineTo(x2s, y2s);
+          ctx.moveTo(x2s, y1s); ctx.lineTo(x1s, y2s);
+        }
+      } else if ((drawingPreview.type === 'dwall' || drawingPreview.type === 'studs') && pts.length > 0) {
+        const p0 = pts[0];
+        const dx = Math.abs(cur.x - p0.x), dy = Math.abs(cur.y - p0.y);
+        const hw = 52.5; // half wall thickness
+        if (dx > dy) {
+          ctx.moveTo(tx(p0.x), ty(p0.y - hw)); ctx.lineTo(tx(cur.x), ty(p0.y - hw));
+          ctx.moveTo(tx(p0.x), ty(p0.y + hw)); ctx.lineTo(tx(cur.x), ty(p0.y + hw));
+        } else {
+          ctx.moveTo(tx(p0.x - hw), ty(p0.y)); ctx.lineTo(tx(p0.x - hw), ty(cur.y));
+          ctx.moveTo(tx(p0.x + hw), ty(p0.y)); ctx.lineTo(tx(p0.x + hw), ty(cur.y));
+        }
       } else if (drawingPreview.type === 'dimension' && pts.length > 0) {
         ctx.moveTo(tx(pts[0].x), ty(pts[0].y));
         ctx.lineTo(tx(cur.x), ty(cur.y));
-        // Show distance
         const dist = Math.round(Math.hypot(cur.x - pts[0].x, cur.y - pts[0].y));
-        ctx.font = '11px monospace';
-        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '11px monospace'; ctx.fillStyle = previewColor;
         const mx = (tx(pts[0].x) + tx(cur.x)) / 2;
         const my = (ty(pts[0].y) + ty(cur.y)) / 2;
         ctx.fillText(`${dist}mm`, mx + 5, my - 5);
+      } else if (drawingPreview.type === 'label' && pts.length > 0) {
+        ctx.moveTo(tx(pts[0].x), ty(pts[0].y));
+        ctx.lineTo(tx(cur.x), ty(cur.y));
+        ctx.arc(tx(pts[0].x), ty(pts[0].y), 4, 0, Math.PI * 2);
       } else if (pts.length > 0) {
-        // Default line preview
         ctx.moveTo(tx(pts[0].x), ty(pts[0].y));
         ctx.lineTo(tx(cur.x), ty(cur.y));
       }

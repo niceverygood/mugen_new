@@ -13,7 +13,7 @@ interface EditorState {
   // View
   zoom: number;
   pan: { x: number; y: number };
-  tool: 'pan' | 'line' | 'rect' | 'select' | 'wall' | 'polyline' | 'text' | 'dimension';
+  tool: string;
 
   // Grid
   gridAxes: Axes | null;
@@ -53,7 +53,7 @@ interface EditorState {
   snapDistance: number;
   setSnapEnabled: (v: boolean) => void;
   setDrawColor: (c: number) => void;
-  setTool: (tool: 'pan' | 'line' | 'rect' | 'select' | 'wall' | 'polyline' | 'text' | 'dimension') => void;
+  setTool: (tool: string) => void;
   setGridAxes: (axes: Axes | null) => void;
   setShowGrid: (v: boolean) => void;
   setActiveStructuralLayer: (layer: StructuralLayerType | null) => void;

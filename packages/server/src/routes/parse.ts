@@ -8,7 +8,7 @@ import { parseDXF } from '@mugen/shared';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, '../../uploads');
 
-export const parseRouter = Router();
+export const parseRouter: ReturnType<typeof Router> = Router();
 
 parseRouter.get('/parse/:filename', (req, res) => {
   const filePath = path.join(uploadsDir, req.params.filename);

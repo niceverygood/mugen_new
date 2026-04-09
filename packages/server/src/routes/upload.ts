@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
-export const uploadRouter = Router();
+export const uploadRouter: ReturnType<typeof Router> = Router();
 
 uploadRouter.post('/upload', upload.single('dxf'), (req, res) => {
   if (!req.file) {

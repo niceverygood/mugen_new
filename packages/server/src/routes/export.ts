@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { GeneratedLayers, DXFEntity } from '@mugen/shared';
 import { exportDXF } from '../services/dxf-exporter.js';
 
-export const exportRouter = Router();
+export const exportRouter: ReturnType<typeof Router> = Router();
 
 exportRouter.post('/export', (req, res) => {
   const { layers, originalEntities } = req.body as {

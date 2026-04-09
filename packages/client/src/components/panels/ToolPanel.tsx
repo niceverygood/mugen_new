@@ -1,7 +1,51 @@
 import { useEditorStore } from '../../store/editorStore';
 import { STRUCTURAL_LAYERS, ACI } from '@mugen/shared';
 
-// Common ACI colors for structural drawing
+const TOOL_GROUPS = [
+  {
+    name: '내비게이션',
+    tools: [
+      { id: 'pan', label: '이동', icon: '🖐' },
+      { id: 'select', label: '선택', icon: '👆' },
+    ],
+  },
+  {
+    name: '기본 도형',
+    tools: [
+      { id: 'line', label: '직선', icon: '╱', desc: '두 점 사이 자유 직선' },
+      { id: 'rect', label: '사각형', icon: '▭', desc: '대각선 두 점으로 사각형' },
+      { id: 'circle', label: '원', icon: '○', desc: '중심 + 반지름 점 (기둥/볼트)' },
+      { id: 'arc', label: '호', icon: '◠', desc: '중심→시작점→끝점 (개구부 표시)' },
+      { id: 'polyline', label: '연속선', icon: '⏤', desc: '연속 폴리라인 (더블클릭 완료)' },
+    ],
+  },
+  {
+    name: '구조 전용',
+    tools: [
+      { id: 'wall', label: '단일벽', icon: '│', desc: '수직/수평 자동보정 단일선' },
+      { id: 'dwall', label: '이중벽', icon: '║', desc: '벽두께 자동 적용 평행선 (Wood:105mm)' },
+      { id: 'studs', label: '스터드', icon: '┃┃', desc: '벽체+스터드 일괄배치 (프리셋 간격)' },
+      { id: 'joists', label: '장선', icon: '≡', desc: '영역 내 장선 자동배치' },
+      { id: 'xcross', label: 'X마크', icon: '☒', desc: '사각+대각선 (점검구/독립기초)' },
+    ],
+  },
+  {
+    name: '심볼',
+    tools: [
+      { id: 'bolt', label: '볼트', icon: '⊕', desc: '앵커볼트 심볼 (원+십자)' },
+      { id: 'hardware', label: '금물', icon: '△', desc: '금물 마크 (삼각형)' },
+    ],
+  },
+  {
+    name: '주석',
+    tools: [
+      { id: 'dimension', label: '치수', icon: '↔', desc: '두 점 사이 치수선+거리표시' },
+      { id: 'text', label: '텍스트', icon: 'T', desc: '텍스트 배치' },
+      { id: 'label', label: '라벨', icon: '⤷', desc: '지시선+라벨 텍스트' },
+    ],
+  },
+];
+
 const COLOR_PRESETS = [
   { aci: 1, name: '빨강', hex: '#FF2020' },
   { aci: 2, name: '노랑', hex: '#FFFF00' },
@@ -15,17 +59,6 @@ const COLOR_PRESETS = [
   { aci: 40, name: '금색', hex: '#FFBF00' },
 ];
 
-const TOOLS = [
-  { id: 'pan', label: '이동', icon: '🖐', group: 'nav' },
-  { id: 'select', label: '선택', icon: '👆', group: 'nav' },
-  { id: 'wall', label: '벽체', icon: '🧱', group: 'draw', desc: '수평/수직 벽체 (자동 수직/수평 보정)' },
-  { id: 'line', label: '선', icon: '📏', group: 'draw', desc: '자유 직선' },
-  { id: 'rect', label: '사각', icon: '⬜', group: 'draw', desc: '사각형 (기초/점검구 등)' },
-  { id: 'polyline', label: '연속선', icon: '📐', group: 'draw', desc: '연속 폴리라인 (더블클릭으로 완료)' },
-  { id: 'dimension', label: '치수', icon: '↔️', group: 'anno', desc: '두 점 사이 치수선' },
-  { id: 'text', label: '텍스트', icon: '🔤', group: 'anno', desc: '텍스트 배치' },
-] as const;
-
 export default function ToolPanel() {
   const {
     tool, setTool, activeStructuralLayer,
@@ -33,157 +66,111 @@ export default function ToolPanel() {
     showGrid, setShowGrid,
     snapEnabled, setSnapEnabled,
     drawColor, setDrawColor,
-    structuralElements,
+    structuralElements, preset,
     undoStack, redoStack, undo, redo,
   } = useEditorStore();
 
   const activeCount = activeStructuralLayer ? structuralElements[activeStructuralLayer].length : 0;
-
-  const btnStyle = (t: string) => ({
-    flex: 1, padding: '6px 2px', fontSize: 10,
-    background: tool === t ? '#1f3354' : '#161b22',
-    border: tool === t ? '1px solid #2f81f7' : '1px solid #21262d',
-    color: tool === t ? '#58a6ff' : '#8b949e',
-    borderRadius: 4, cursor: 'pointer', textAlign: 'center' as const,
-    minWidth: 0,
-  });
+  const needsLayer = !activeStructuralLayer && tool !== 'pan' && tool !== 'select';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Navigation tools */}
-      <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>내비게이션</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {TOOLS.filter(t => t.group === 'nav').map(t => (
-            <button key={t.id} onClick={() => setTool(t.id as any)} style={btnStyle(t.id)}>
-              <div style={{ fontSize: 16 }}>{t.icon}</div>
-              <div>{t.label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Drawing tools */}
-      <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>그리기 도구</div>
-        {!activeStructuralLayer && (
-          <div style={{ fontSize: 10, color: '#f85149', marginBottom: 4, padding: '4px 8px', background: '#1a0000', borderRadius: 4 }}>
-            좌측에서 구조 레이어를 먼저 선택하세요
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 11 }}>
+      {TOOL_GROUPS.map(group => {
+        const isNavGroup = group.name === '내비게이션';
+        return (
+          <div key={group.name}>
+            <div style={{ color: '#8b949e', fontWeight: 600, marginBottom: 3 }}>{group.name}</div>
+            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {group.tools.map(t => {
+                const active = tool === t.id;
+                const disabled = !isNavGroup && !activeStructuralLayer;
+                return (
+                  <button key={t.id} onClick={() => !disabled && setTool(t.id)}
+                    title={t.desc || t.label}
+                    style={{
+                      padding: '4px 6px', fontSize: 10, minWidth: 42, textAlign: 'center',
+                      background: active ? '#1f3354' : '#161b22',
+                      border: active ? '1px solid #2f81f7' : '1px solid #21262d',
+                      color: active ? '#58a6ff' : disabled ? '#30363d' : '#8b949e',
+                      borderRadius: 4, cursor: disabled ? 'default' : 'pointer',
+                      opacity: disabled ? 0.5 : 1,
+                    }}>
+                    <div style={{ fontSize: 14, lineHeight: 1 }}>{t.icon}</div>
+                    <div style={{ marginTop: 1 }}>{t.label}</div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {TOOLS.filter(t => t.group === 'draw').map(t => (
-            <button key={t.id} onClick={() => setTool(t.id as any)}
-              disabled={!activeStructuralLayer}
-              style={{ ...btnStyle(t.id), opacity: activeStructuralLayer ? 1 : 0.4 }}
-              title={t.desc}>
-              <div style={{ fontSize: 16 }}>{t.icon}</div>
-              <div>{t.label}</div>
-            </button>
-          ))}
-        </div>
-      </div>
+        );
+      })}
 
-      {/* Annotation tools */}
-      <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>주석 도구</div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {TOOLS.filter(t => t.group === 'anno').map(t => (
-            <button key={t.id} onClick={() => setTool(t.id as any)}
-              disabled={!activeStructuralLayer}
-              style={{ ...btnStyle(t.id), opacity: activeStructuralLayer ? 1 : 0.4 }}
-              title={t.desc}>
-              <div style={{ fontSize: 16 }}>{t.icon}</div>
-              <div>{t.label}</div>
-            </button>
-          ))}
+      {needsLayer && (
+        <div style={{ fontSize: 10, color: '#f85149', padding: '4px 8px', background: '#1a0000', borderRadius: 4 }}>
+          좌측에서 구조 레이어를 먼저 선택하세요
         </div>
-      </div>
+      )}
 
       {/* Undo/Redo */}
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 3 }}>
         <button onClick={undo} disabled={!undoStack.length}
-          style={{ flex: 1, padding: '4px', fontSize: 11, background: '#161b22', border: '1px solid #21262d', color: undoStack.length ? '#c9d1d9' : '#30363d', borderRadius: 4, cursor: undoStack.length ? 'pointer' : 'default' }}>
+          style={{ flex: 1, padding: '3px', background: '#161b22', border: '1px solid #21262d', color: undoStack.length ? '#c9d1d9' : '#30363d', borderRadius: 4, cursor: undoStack.length ? 'pointer' : 'default', fontSize: 10 }}>
           ↩ Undo ({undoStack.length})
         </button>
         <button onClick={redo} disabled={!redoStack.length}
-          style={{ flex: 1, padding: '4px', fontSize: 11, background: '#161b22', border: '1px solid #21262d', color: redoStack.length ? '#c9d1d9' : '#30363d', borderRadius: 4, cursor: redoStack.length ? 'pointer' : 'default' }}>
+          style={{ flex: 1, padding: '3px', background: '#161b22', border: '1px solid #21262d', color: redoStack.length ? '#c9d1d9' : '#30363d', borderRadius: 4, cursor: redoStack.length ? 'pointer' : 'default', fontSize: 10 }}>
           ↪ Redo ({redoStack.length})
         </button>
       </div>
 
       {/* Active layer info */}
       {activeStructuralLayer && (
-        <div style={{ padding: '8px', background: '#161b22', borderRadius: 6, border: `1px solid ${STRUCTURAL_LAYERS[activeStructuralLayer].color}40` }}>
-          <div style={{ fontSize: 11, color: STRUCTURAL_LAYERS[activeStructuralLayer].color, fontWeight: 600, marginBottom: 4 }}>
+        <div style={{ padding: '6px 8px', background: '#161b22', borderRadius: 6, border: `1px solid ${STRUCTURAL_LAYERS[activeStructuralLayer].color}40` }}>
+          <div style={{ color: STRUCTURAL_LAYERS[activeStructuralLayer].color, fontWeight: 600 }}>
             활성: {STRUCTURAL_LAYERS[activeStructuralLayer].label}
           </div>
-          <div style={{ fontSize: 10, color: '#8b949e' }}>
-            요소: {activeCount}개
-          </div>
+          <div style={{ color: '#8b949e', fontSize: 10 }}>요소: {activeCount}개 | 스터드간격: {preset.stud}mm | 벽: {preset.wallType}</div>
         </div>
       )}
 
       {/* Color picker */}
       <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>
-          그리기 색상 (ACI: {drawColor})
-        </div>
+        <div style={{ color: '#8b949e', fontWeight: 600, marginBottom: 3 }}>그리기 색상 (ACI: {drawColor})</div>
         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {COLOR_PRESETS.map(c => (
-            <button
-              key={c.aci}
-              onClick={() => setDrawColor(c.aci)}
-              title={`${c.name} (ACI ${c.aci})`}
+            <button key={c.aci} onClick={() => setDrawColor(c.aci)} title={`${c.name} (ACI ${c.aci})`}
               style={{
-                width: 24, height: 24, borderRadius: 4,
-                background: c.hex,
-                border: drawColor === c.aci ? '2px solid #fff' : '1px solid #30363d',
-                cursor: 'pointer',
-                boxShadow: drawColor === c.aci ? '0 0 6px ' + c.hex : 'none',
-              }}
-            />
+                width: 22, height: 22, borderRadius: 3, background: c.hex, border: drawColor === c.aci ? '2px solid #fff' : '1px solid #30363d',
+                cursor: 'pointer', boxShadow: drawColor === c.aci ? '0 0 4px ' + c.hex : 'none',
+              }} />
           ))}
         </div>
-        <div style={{ fontSize: 9, color: '#484f58', marginTop: 4 }}>
-          선택한 색상이 DXF 내보내기 시 유지됩니다
-        </div>
+        <div style={{ fontSize: 9, color: '#484f58', marginTop: 2 }}>DXF 내보내기 시 ACI 색상 유지됨</div>
       </div>
 
-      {/* Snap settings */}
+      {/* Settings */}
       <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>스냅 설정</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-          <input type="checkbox" checked={snapEnabled} onChange={() => setSnapEnabled(!snapEnabled)} />
-          <span style={{ fontSize: 11, color: '#8b949e' }}>그리드 스냅 ({snapEnabled ? 'ON' : 'OFF'})</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+          <input type="checkbox" checked={snapEnabled} onChange={() => setSnapEnabled(!snapEnabled)} style={{ width: 13, height: 13 }} />
+          <span style={{ color: '#8b949e' }}>그리드 스냅 ({snapEnabled ? 'ON' : 'OFF'})</span>
         </div>
-      </div>
-
-      {/* Display settings */}
-      <div>
-        <div style={{ fontSize: 11, color: '#8b949e', fontWeight: 600, marginBottom: 4 }}>표시 설정</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-          <input type="checkbox" checked={showGrid} onChange={() => setShowGrid(!showGrid)} />
-          <span style={{ fontSize: 11, color: '#8b949e' }}>그리드 축 표시</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+          <input type="checkbox" checked={showGrid} onChange={() => setShowGrid(!showGrid)} style={{ width: 13, height: 13 }} />
+          <span style={{ color: '#8b949e' }}>그리드 축 표시</span>
         </div>
         <div>
-          <label style={{ fontSize: 10, color: '#484f58' }}>의장도 투명도: {Math.round(overlayOpacity * 100)}%</label>
-          <input
-            type="range" min={5} max={100} value={Math.round(overlayOpacity * 100)}
-            onChange={e => setOverlayOpacity(parseInt(e.target.value) / 100)}
-            style={{ width: '100%' }}
-          />
+          <span style={{ color: '#484f58', fontSize: 10 }}>의장도 투명도: {Math.round(overlayOpacity * 100)}%</span>
+          <input type="range" min={5} max={100} value={Math.round(overlayOpacity * 100)}
+            onChange={e => setOverlayOpacity(parseInt(e.target.value) / 100)} style={{ width: '100%', height: 14 }} />
         </div>
       </div>
 
-      {/* Shortcuts */}
-      <div style={{ borderTop: '1px solid #21262d', paddingTop: 8, fontSize: 10, color: '#30363d', lineHeight: 1.5 }}>
-        <div>Scroll = 줌</div>
-        <div>Ctrl+Z = 실행취소</div>
-        <div>Ctrl+Shift+Z = 재실행</div>
-        <div>ESC / 우클릭 = 그리기 취소</div>
-        <div>더블클릭 = 폴리라인 완료</div>
-        <div>벽체도구 = 자동 수직/수평 보정</div>
+      {/* Help */}
+      <div style={{ borderTop: '1px solid #21262d', paddingTop: 6, fontSize: 9, color: '#30363d', lineHeight: 1.6 }}>
+        <div>Scroll=줌 | Ctrl+Z=실행취소</div>
+        <div>ESC/우클릭=그리기취소</div>
+        <div>더블클릭=연속선완료</div>
+        <div>모든 요소는 DXF 벡터로 저장됩니다</div>
       </div>
     </div>
   );

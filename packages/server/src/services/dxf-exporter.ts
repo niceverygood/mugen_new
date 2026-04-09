@@ -31,6 +31,8 @@ export function exportDXF(generatedLayers: GeneratedLayers, originalEntities: DX
       });
     } else if (e.type === 'CIRCLE') {
       d += `0\nCIRCLE\n8\n${lyr}${col}\n10\n${(e.x || 0).toFixed(2)}\n20\n${(e.y || 0).toFixed(2)}\n30\n0\n40\n${(e.r || 50).toFixed(2)}\n`;
+    } else if (e.type === 'ARC') {
+      d += `0\nARC\n8\n${lyr}${col}\n10\n${(e.x || 0).toFixed(2)}\n20\n${(e.y || 0).toFixed(2)}\n30\n0\n40\n${(e.r || 50).toFixed(2)}\n50\n${(e.sa || 0).toFixed(2)}\n51\n${(e.ea || 360).toFixed(2)}\n`;
     } else if (e.type === 'TEXT' || e.type === 'MTEXT') {
       d += `0\nTEXT\n8\n${lyr}${col}\n10\n${(e.x || 0).toFixed(2)}\n20\n${(e.y || 0).toFixed(2)}\n30\n0\n40\n100\n1\n${e.text || ''}\n`;
     }
