@@ -68,6 +68,8 @@ export default function ToolPanel() {
     drawColor, setDrawColor,
     structuralElements, preset,
     undoStack, redoStack, undo, redo,
+    selectedElementId, selectedLayerType,
+    deleteSelectedElement, selectElement, updateSelectedElementColor,
   } = useEditorStore();
 
   const activeCount = activeStructuralLayer ? structuralElements[activeStructuralLayer].length : 0;
@@ -110,6 +112,48 @@ export default function ToolPanel() {
           좌측에서 구조 레이어를 먼저 선택하세요
         </div>
       )}
+
+      {/* Selected element info */}
+      {selectedElementId && selectedLayerType && (() => {
+        const el = structuralElements[selectedLayerType]?.find(e => e.id === selectedElementId);
+        if (!el) return null;
+        const e = el.entity as any;
+        return (
+          <div style={{ padding: '6px 8px', background: '#0a1929', borderRadius: 6, border: '1px solid #58a6ff' }}>
+            <div style={{ color: '#58a6ff', fontWeight: 600, marginBottom: 4 }}>선택됨: {e.type}</div>
+            <div style={{ fontSize: 9, color: '#8b949e', lineHeight: 1.6 }}>
+              {e.type === 'LINE' && `(${Math.round(e.x1)}, ${Math.round(e.y1)}) → (${Math.round(e.x2)}, ${Math.round(e.y2)})`}
+              {e.type === 'CIRCLE' && `중심: (${Math.round(e.x)}, ${Math.round(e.y)}) R=${Math.round(e.r)}`}
+              {e.type === 'TEXT' && `"${e.text}" at (${Math.round(e.x)}, ${Math.round(e.y)})`}
+              {e.type === 'LWPOLYLINE' && `${e.vertices?.length}점 폴리라인`}
+              {e.type === 'ARC' && `중심: (${Math.round(e.x)}, ${Math.round(e.y)}) R=${Math.round(e.r)}`}
+              <br />색상: ACI {e.color || '없음'}
+            </div>
+            <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+              <button onClick={deleteSelectedElement}
+                style={{ flex: 1, padding: '3px 6px', background: '#3d1114', border: '1px solid #f85149', color: '#f85149', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}>
+                삭제 (Del)
+              </button>
+              <button onClick={() => selectElement(null, null)}
+                style={{ flex: 1, padding: '3px 6px', background: '#161b22', border: '1px solid #21262d', color: '#8b949e', borderRadius: 4, cursor: 'pointer', fontSize: 10 }}>
+                선택해제
+              </button>
+            </div>
+            <div style={{ fontSize: 9, color: '#484f58', marginTop: 3 }}>
+              색상 변경:
+            </div>
+            <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+              {COLOR_PRESETS.slice(0, 7).map(c => (
+                <button key={c.aci} onClick={() => updateSelectedElementColor(c.aci)}
+                  style={{ width: 18, height: 18, borderRadius: 2, background: c.hex, border: '1px solid #30363d', cursor: 'pointer' }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 9, color: '#484f58', marginTop: 3 }}>
+              ← → ↑ ↓ 방향키로 이동 (Shift=큰이동)
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Undo/Redo */}
       <div style={{ display: 'flex', gap: 3 }}>

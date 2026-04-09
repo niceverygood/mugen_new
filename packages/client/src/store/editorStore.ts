@@ -37,6 +37,10 @@ interface EditorState {
   // Generation state
   isGenerating: boolean;
 
+  // Selection
+  selectedElementId: string | null;
+  selectedLayerType: StructuralLayerType | null;
+
   // Drawing color
   drawColor: number; // ACI color index
 
@@ -53,6 +57,10 @@ interface EditorState {
   snapDistance: number;
   setSnapEnabled: (v: boolean) => void;
   setDrawColor: (c: number) => void;
+  selectElement: (id: string | null, layerType: StructuralLayerType | null) => void;
+  deleteSelectedElement: () => void;
+  moveSelectedElement: (dx: number, dy: number) => void;
+  updateSelectedElementColor: (color: number) => void;
   setTool: (tool: string) => void;
   setGridAxes: (axes: Axes | null) => void;
   setShowGrid: (v: boolean) => void;
@@ -98,6 +106,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   isGenerating: false,
+  selectedElementId: null,
+  selectedLayerType: null,
   drawColor: 1, // ACI Red
   overlayOpacity: 0.25,
   snapEnabled: true,
@@ -127,6 +137,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setPan: (pan) => set({ pan }),
   setSnapEnabled: (v) => set({ snapEnabled: v }),
   setDrawColor: (c) => set({ drawColor: c }),
+
+  selectElement: (id, layerType) => set({ selectedElementId: id, selectedLayerType: layerType }),
+
+  deleteSelectedElement: () => {
+    const s = get();
+    if (!s.selectedElementId || !s.selectedLayerType) return;
+    s.removeStructuralElement(s.selectedLayerType, s.selectedElementId);
+    set({ selectedElementId: null, selectedLayerType: null });
+  },
+
+  moveSelectedElement: (dx, dy) => {
+    const s = get();
+    if (!s.selectedElementId || !s.selectedLayerType) return;
+    const elements = s.structuralElements[s.selectedLayerType];
+    const updated = elements.map(el => {
+      if (el.id !== s.selectedElementId) return el;
+      const e = { ...el.entity } as any;
+      if (e.type === 'LINE') { e.x1 += dx; e.y1 += dy; e.x2 += dx; e.y2 += dy; }
+      else if (e.type === 'CIRCLE' || e.type === 'ARC' || e.type === 'TEXT' || e.type === 'MTEXT') { e.x += dx; e.y += dy; }
+      else if ((e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') && e.vertices) {
+        e.vertices = e.vertices.map((v: any) => ({ x: v.x + dx, y: v.y + dy }));
+      }
+      return { ...el, entity: e };
+    });
+    set({ structuralElements: { ...s.structuralElements, [s.selectedLayerType]: updated } });
+  },
+
+  updateSelectedElementColor: (color) => {
+    const s = get();
+    if (!s.selectedElementId || !s.selectedLayerType) return;
+    const elements = s.structuralElements[s.selectedLayerType];
+    const updated = elements.map(el => {
+      if (el.id !== s.selectedElementId) return el;
+      return { ...el, entity: { ...el.entity, color } as any };
+    });
+    set({ structuralElements: { ...s.structuralElements, [s.selectedLayerType]: updated } });
+  },
   setTool: (tool) => set({ tool }),
   setGridAxes: (axes) => set({ gridAxes: axes }),
   setShowGrid: (v) => set({ showGrid: v }),

@@ -8,6 +8,37 @@ interface DrawState {
   points: { x: number; y: number }[];
 }
 
+function distToLine(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function distToElement(wp: { x: number; y: number }, e: any): number {
+  if (e.type === 'LINE') {
+    return distToLine(wp.x, wp.y, e.x1, e.y1, e.x2, e.y2);
+  } else if (e.type === 'CIRCLE') {
+    return Math.abs(Math.hypot(wp.x - e.x, wp.y - e.y) - e.r);
+  } else if (e.type === 'ARC') {
+    return Math.abs(Math.hypot(wp.x - e.x, wp.y - e.y) - e.r);
+  } else if (e.type === 'TEXT' || e.type === 'MTEXT') {
+    return Math.hypot(wp.x - e.x, wp.y - e.y);
+  } else if ((e.type === 'LWPOLYLINE' || e.type === 'POLYLINE') && e.vertices?.length >= 2) {
+    let minD = Infinity;
+    for (let i = 0; i < e.vertices.length; i++) {
+      const j = (i + 1) % e.vertices.length;
+      if (j === 0 && !(e.flags & 1)) continue; // skip closing if not closed
+      const d = distToLine(wp.x, wp.y, e.vertices[i].x, e.vertices[i].y, e.vertices[j].x, e.vertices[j].y);
+      if (d < minD) minD = d;
+    }
+    return minD;
+  }
+  return Infinity;
+}
+
 function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -45,7 +76,28 @@ export function useDrawingTools(
       return;
     }
 
-    if (!activeStructuralLayer && tool !== 'select') return;
+    // ---- Select tool ----
+    if (tool === 'select') {
+      // Find nearest element across all layers
+      const hitDist = 300; // mm tolerance
+      let best: { id: string; lt: string; dist: number } | null = null;
+      for (const [lt, elements] of Object.entries(store.structuralElements)) {
+        for (const el of elements) {
+          const d = distToElement(rawWp, el.entity as any);
+          if (d < hitDist && (!best || d < best.dist)) {
+            best = { id: el.id, lt, dist: d };
+          }
+        }
+      }
+      if (best) {
+        store.selectElement(best.id, best.lt as any);
+      } else {
+        store.selectElement(null, null);
+      }
+      return;
+    }
+
+    if (!activeStructuralLayer) return;
 
     // ---- Line / Wall ----
     if (tool === 'line' || tool === 'wall') {

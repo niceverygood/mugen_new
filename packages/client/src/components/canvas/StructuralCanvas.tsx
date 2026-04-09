@@ -15,6 +15,7 @@ export default function StructuralCanvas() {
     generatedLayers, genVisible, activeStructuralLayer,
     gridAxes, showGrid, structuralElements, structuralLayerVisible,
     overlayOpacity, setZoom, setPan,
+    selectedElementId, selectedLayerType, deleteSelectedElement, moveSelectedElement,
   } = useEditorStore();
 
   const layerColors = useMemo(() => {
@@ -44,7 +45,10 @@ export default function StructuralCanvas() {
   // Key events
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDrawState(null);
+      if (e.key === 'Escape') {
+        setDrawState(null);
+        useEditorStore.getState().selectElement(null, null);
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         useEditorStore.getState().undo();
@@ -53,6 +57,17 @@ export default function StructuralCanvas() {
         e.preventDefault();
         useEditorStore.getState().redo();
       }
+      // Delete selected element
+      if ((e.key === 'Delete' || e.key === 'Backspace') && useEditorStore.getState().selectedElementId) {
+        e.preventDefault();
+        useEditorStore.getState().deleteSelectedElement();
+      }
+      // Move selected element with arrow keys
+      const moveStep = e.shiftKey ? 100 : 10;
+      if (e.key === 'ArrowLeft' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(-moveStep, 0); }
+      if (e.key === 'ArrowRight' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(moveStep, 0); }
+      if (e.key === 'ArrowUp' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(0, moveStep); }
+      if (e.key === 'ArrowDown' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(0, -moveStep); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -226,8 +241,16 @@ export default function StructuralCanvas() {
       const alpha = isActive ? 0.95 : (activeStructuralLayer !== null ? 0.25 : 0.8);
       const lw = isActive ? 2.0 : 1.0;
       elements.forEach(el => {
-        const eColor = (el.entity as any).color ? (aciToHex((el.entity as any).color) || cfg.color) : cfg.color;
-        drawEntity(ctx, el.entity, eColor, lw, alpha);
+        const isSelected = el.id === selectedElementId;
+        const eColor = isSelected ? '#ffffff' : ((el.entity as any).color ? (aciToHex((el.entity as any).color) || cfg.color) : cfg.color);
+        drawEntity(ctx, el.entity, eColor, isSelected ? 3.0 : lw, isSelected ? 1.0 : alpha);
+        // Selection highlight glow
+        if (isSelected) {
+          ctx.shadowColor = '#58a6ff';
+          ctx.shadowBlur = 8;
+          drawEntity(ctx, el.entity, '#58a6ff', 1.5, 0.5);
+          ctx.shadowBlur = 0;
+        }
       });
     });
 
@@ -349,7 +372,8 @@ export default function StructuralCanvas() {
     }
   }, [dxfData, zoom, pan, visibleLayers, layerColors, generatedLayers, genVisible,
     activeStructuralLayer, gridAxes, showGrid, structuralElements, structuralLayerVisible,
-    overlayOpacity, drawingPreview, snappedPos, worldPos, tool, getTransform, canvasSize]);
+    overlayOpacity, drawingPreview, snappedPos, worldPos, tool, getTransform, canvasSize,
+    selectedElementId, selectedLayerType]);
 
   return (
     <div ref={containerRef} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}
