@@ -68,6 +68,23 @@ export default function StructuralCanvas() {
       if (e.key === 'ArrowRight' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(moveStep, 0); }
       if (e.key === 'ArrowUp' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(0, moveStep); }
       if (e.key === 'ArrowDown' && useEditorStore.getState().selectedElementId) { e.preventDefault(); moveSelectedElement(0, -moveStep); }
+      // Tool shortcuts (single letter, no modifiers, not in text input)
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1) {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        const toolMap: Record<string, string> = {
+          m: 'pan', v: 'select', l: 'line', r: 'rect', c: 'circle', a: 'arc',
+          p: 'polyline', w: 'wall', e: 'dwall', s: 'studs', j: 'joists',
+          x: 'xcross', b: 'bolt', h: 'hardware', d: 'dimension', t: 'text', g: 'label',
+        };
+        const toolId = toolMap[e.key.toLowerCase()];
+        if (toolId) {
+          const isNav = toolId === 'pan' || toolId === 'select';
+          if (isNav || useEditorStore.getState().activeStructuralLayer) {
+            useEditorStore.getState().setTool(toolId);
+          }
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

@@ -5,46 +5,50 @@ const TOOL_GROUPS = [
   {
     name: '내비게이션',
     tools: [
-      { id: 'pan', label: '이동', icon: '🖐' },
-      { id: 'select', label: '선택', icon: '👆' },
+      { id: 'pan', label: '이동', icon: '🖐', key: 'M' },
+      { id: 'select', label: '선택', icon: '👆', key: 'V' },
     ],
   },
   {
     name: '기본 도형',
     tools: [
-      { id: 'line', label: '직선', icon: '╱', desc: '두 점 사이 자유 직선' },
-      { id: 'rect', label: '사각형', icon: '▭', desc: '대각선 두 점으로 사각형' },
-      { id: 'circle', label: '원', icon: '○', desc: '중심 + 반지름 점 (기둥/볼트)' },
-      { id: 'arc', label: '호', icon: '◠', desc: '중심→시작점→끝점 (개구부 표시)' },
-      { id: 'polyline', label: '연속선', icon: '⏤', desc: '연속 폴리라인 (더블클릭 완료)' },
+      { id: 'line', label: '직선', icon: '╱', key: 'L', desc: '두 점 사이 자유 직선' },
+      { id: 'rect', label: '사각형', icon: '▭', key: 'R', desc: '대각선 두 점으로 사각형' },
+      { id: 'circle', label: '원', icon: '○', key: 'C', desc: '중심 + 반지름 점 (기둥/볼트)' },
+      { id: 'arc', label: '호', icon: '◠', key: 'A', desc: '중심→시작점→끝점 (개구부 표시)' },
+      { id: 'polyline', label: '연속선', icon: '⏤', key: 'P', desc: '연속 폴리라인 (더블클릭 완료)' },
     ],
   },
   {
     name: '구조 전용',
     tools: [
-      { id: 'wall', label: '단일벽', icon: '│', desc: '수직/수평 자동보정 단일선' },
-      { id: 'dwall', label: '이중벽', icon: '║', desc: '벽두께 자동 적용 평행선 (Wood:105mm)' },
-      { id: 'studs', label: '스터드', icon: '┃┃', desc: '벽체+스터드 일괄배치 (프리셋 간격)' },
-      { id: 'joists', label: '장선', icon: '≡', desc: '영역 내 장선 자동배치' },
-      { id: 'xcross', label: 'X마크', icon: '☒', desc: '사각+대각선 (점검구/독립기초)' },
+      { id: 'wall', label: '단일벽', icon: '│', key: 'W', desc: '수직/수평 자동보정 단일선' },
+      { id: 'dwall', label: '이중벽', icon: '║', key: 'E', desc: '벽두께 자동 적용 평행선 (Wood:105mm)' },
+      { id: 'studs', label: '스터드', icon: '┃┃', key: 'S', desc: '벽체+스터드 일괄배치 (프리셋 간격)' },
+      { id: 'joists', label: '장선', icon: '≡', key: 'J', desc: '영역 내 장선 자동배치' },
+      { id: 'xcross', label: 'X마크', icon: '☒', key: 'X', desc: '사각+대각선 (점검구/독립기초)' },
     ],
   },
   {
     name: '심볼',
     tools: [
-      { id: 'bolt', label: '볼트', icon: '⊕', desc: '앵커볼트 심볼 (원+십자)' },
-      { id: 'hardware', label: '금물', icon: '△', desc: '금물 마크 (삼각형)' },
+      { id: 'bolt', label: '볼트', icon: '⊕', key: 'B', desc: '앵커볼트 심볼 (원+십자)' },
+      { id: 'hardware', label: '금물', icon: '△', key: 'H', desc: '금물 마크 (삼각형)' },
     ],
   },
   {
     name: '주석',
     tools: [
-      { id: 'dimension', label: '치수', icon: '↔', desc: '두 점 사이 치수선+거리표시' },
-      { id: 'text', label: '텍스트', icon: 'T', desc: '텍스트 배치' },
-      { id: 'label', label: '라벨', icon: '⤷', desc: '지시선+라벨 텍스트' },
+      { id: 'dimension', label: '치수', icon: '↔', key: 'D', desc: '두 점 사이 치수선+거리표시' },
+      { id: 'text', label: '텍스트', icon: 'T', key: 'T', desc: '텍스트 배치' },
+      { id: 'label', label: '라벨', icon: '⤷', key: 'G', desc: '지시선+라벨 텍스트' },
     ],
   },
 ];
+
+// Build key→toolId map
+const KEY_MAP: Record<string, string> = {};
+TOOL_GROUPS.forEach(g => g.tools.forEach(t => { if (t.key) KEY_MAP[t.key.toLowerCase()] = t.id; }));
 
 const COLOR_PRESETS = [
   { aci: 1, name: '빨강', hex: '#FF2020' },
@@ -98,7 +102,7 @@ export default function ToolPanel() {
                       opacity: disabled ? 0.5 : 1,
                     }}>
                     <div style={{ fontSize: 14, lineHeight: 1 }}>{t.icon}</div>
-                    <div style={{ marginTop: 1 }}>{t.label}</div>
+                    <div style={{ marginTop: 1 }}>{t.label} <span style={{ color: '#484f58', fontSize: 9 }}>{t.key}</span></div>
                   </button>
                 );
               })}
